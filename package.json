@@ -1,0 +1,71 @@
+{
+  "name": "app-server",
+  "version": "1.0.0",
+  "description": "The react app of chinjja",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon",
+    "build": "tsc",
+    "server:start": "node build/src",
+    "migration:run": "ts-node ./node_modules/typeorm/cli.js migration:run",
+    "migration:revert": "ts-node ./node_modules/typeorm/cli.js migration:revert",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "chinjja",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt-nodejs": "0.0.3",
+    "class-validator": "^0.12.2",
+    "cookie-parser": "^1.4.5",
+    "express": "^4.17.1",
+    "http-status-codes": "^2.1.2",
+    "jsonwebtoken": "^8.5.1",
+    "reflect-metadata": "^0.1.13",
+    "sqlite3": "^5.0.0",
+    "typeorm": "^0.2.25",
+    "types": "^0.1.1",
+    "websocket": "^1.0.31"
+  },
+  "devDependencies": {
+    "@types/bcrypt-nodejs": "0.0.31",
+    "@types/cookie-parser": "^1.4.2",
+    "@types/express": "^4.17.7",
+    "@types/jest": "^26.0.10",
+    "@types/jsonwebtoken": "^8.5.0",
+    "@types/node": "^14.6.0",
+    "@types/supertest": "^2.0.10",
+    "@types/websocket": "^1.0.1",
+    "jest": "^26.4.2",
+    "nodemon": "^2.0.4",
+    "supertest": "^4.0.2",
+    "ts-jest": "^26.3.0",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.2"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "src"
+    ],
+    "ext": "ts js json",
+    "ignore": [
+      "*.test.ts",
+      "*.test.js"
+    ],
+    "delay": "3",
+    "exec": "ts-node src"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "testRegex": "\\.test\\.ts$",
+    "moduleFileExtensions": [
+      "ts",
+      "js"
+    ],
+    "globals": {
+      "enableTsDiagnostics": true
+    }
+  }
+}
