@@ -1,7 +1,7 @@
 {
    "type": "sqlite",
-   "database": "database.sqlite",
-   "synchronize": true,
+   "database": "coverage/produnction.sqlite",
+   "synchronize": false,
    "logging": false,
    "entities": [
       "src/entity/**/*.ts"
