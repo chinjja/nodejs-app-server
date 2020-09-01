@@ -1,16 +1,18 @@
 import express from 'express';
 import path from 'path';
-import * as users from './routes/users';
-import * as auth from './routes/auth';
+import * as routers from './routes';
 import passport from 'passport';
 
 export const app = express();
 app.use(express.json());
+app.use(express.urlencoded({extended: false}));
+app.use(routers.auth);
 app.use(passport.initialize());
-app.use(auth.router);
+app.use(passport.authenticate('jwt', {session: false}));
 app.use('/static', express.static(path.resolve(__dirname, '../public')));
-app.use('/users', passport.authenticate('jwt', {session: false}), users.router);
+app.use('/users', routers.users);
+app.use('/posts', routers.posts);
 
-auth.config(passport);
+routers.config(passport);
 
 export default app;

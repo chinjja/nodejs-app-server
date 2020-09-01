@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getConnection } from 'typeorm';
 import { User } from '../entity/User';
+import * as models from '../entity/User';
 import * as jwt from '../utils/jwt-utils';
 import * as crypt from '../utils/crypt-utils';
 import secretObj from '../../coverage/jwt';
@@ -11,10 +12,7 @@ import passport from 'passport';
 
 declare global {
     namespace Express {
-        interface User {
-            id: number,
-            email: string,
-            password: string,
+        interface User extends models.User {
         }
     }
 }
