@@ -22,7 +22,7 @@ test('create user', async () => {
     const email = 'chinjja@gmail.com';
     const password = '12345678';
     const res1 = await server
-    .post('/users')
+    .post('/register')
     .send({email, password})
     .expect(CREATED);
     expect(res1.body.id).toEqual(1);
@@ -35,12 +35,12 @@ test('create user with conflict', async () => {
     const password = '12345678';
 
     await server
-    .post('/users')
+    .post('/register')
     .send({email, password})
     .expect(CREATED);
 
     await server
-    .post('/users')
+    .post('/register')
     .send({email, password})
     .expect(CONFLICT);
 });
@@ -68,11 +68,12 @@ describe('without login', () => {
 describe('with login', () => {
     const email = 'chinjja@gmail.com';
     const password = '12345678';
+    let token: string;
     let refreshToken: string;
 
     beforeEach(async () => {
         await server
-        .post('/users')
+        .post('/register')
         .send({email, password})
         .expect(CREATED);
         
@@ -80,31 +81,36 @@ describe('with login', () => {
         .post('/login')
         .send({email, password})
         .expect(OK);
+        token = res.body.token;
         refreshToken = res.body.refreshToken;
+        expect(token).not.toBeUndefined();
         expect(refreshToken).not.toBeUndefined();
     });
 
     test('get /users/1', async () => {
         await server
         .get('/users/1')
+        .auth(token, {type: 'bearer'})
         .expect(OK);
     });
 
     test('get /users', async () => {
         await server
         .get('/users')
+        .auth(token, {type: 'bearer'})
         .expect(OK);
     });
 
     test('delete /users/1', async () => {
         await server
         .delete('/users/1')
+        .auth(token, {type: 'bearer'})
         .expect(NO_CONTENT);
     });
 
-    test('create /users', async () => {
+    test('create /register', async () => {
         await server
-        .post('/users')
+        .post('/register')
         .send({email, password})
         .expect(CONFLICT);
     });
@@ -112,6 +118,7 @@ describe('with login', () => {
     test('login after delete /users/1', async () => {
         await server
         .delete('/users/1')
+        .auth(token, {type: 'bearer'})
         .expect(NO_CONTENT);
 
         await server
@@ -120,14 +127,27 @@ describe('with login', () => {
         .expect(BAD_REQUEST);
     });
 
-    test('refresh token', async () => {
+    test('unauth refresh token', async () => {
         await server
         .post('/token')
         .send({email, refreshToken})
-        .expect(NO_CONTENT);
+        .expect(OK);
 
         await server
         .get('/users')
+        .auth(token, {type: 'bearer'})
+        .expect(OK);
+    });
+
+    test('refresh token', async () => {
+        const res = await server
+        .post('/token')
+        .send({email, refreshToken})
+        .expect(OK);
+
+        await server
+        .get('/users')
+        .auth(res.body.token, {type: 'bearer'})
         .expect(OK);
     });
 
@@ -138,7 +158,7 @@ describe('with login', () => {
         .expect(UNAUTHORIZED);
     });
 
-    test('reject token', async () => {
+    test('reject refresh token and using previous token for authorization', async () => {
         await server
         .delete('/token')
         .send({refreshToken})
@@ -146,6 +166,7 @@ describe('with login', () => {
 
         await server
         .get('/users')
-        .expect(UNAUTHORIZED);
+        .auth(token, {type: 'bearer'})
+        .expect(OK);
     });
 });
