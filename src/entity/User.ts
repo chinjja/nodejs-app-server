@@ -1,7 +1,8 @@
-import {Entity, PrimaryGeneratedColumn, Column} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, OneToMany} from "typeorm";
 import {Matches, MinLength} from 'class-validator';
+import { Post } from "./Post";
 
-@Entity()
+@Entity("users")
 export class User {
 
     @PrimaryGeneratedColumn()
@@ -22,4 +23,7 @@ export class User {
         nullable: true
     })
     name?: string;
+
+    @OneToMany(type => Post, post => post.user)
+    posts!: Promise<Post[]>;
 }

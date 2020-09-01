@@ -1,5 +1,5 @@
 import {createConnection, getConnection} from 'typeorm';
-import { User } from '../src/entity/User';
+import { User, Post } from '../src/entity';
 
 const connection = {
   async create() {
@@ -7,7 +7,7 @@ const connection = {
       type: 'sqlite',
       synchronize: true,
       database: ':memory:',
-      entities: [User],
+      entities: [User, Post],
     });
   },
 
