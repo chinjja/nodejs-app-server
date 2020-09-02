@@ -70,7 +70,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.post('/token', async (req, res) => {
+router.post('/jwt/refresh', async (req, res) => {
     const token = req.body.token;
     const decoded = jwt.decode(token) as any;
     if(!decoded || !decoded.email) return res.sendStatus(UNAUTHORIZED);
@@ -86,7 +86,7 @@ router.post('/token', async (req, res) => {
     }
 });
 
-router.delete('/token', async (req, res) => {
+router.delete('/jwt/refresh', async (req, res) => {
     const refreshToken = await manager().findOne(RefreshToken, req.body.refreshToken);
     if(refreshToken) {
         await manager().remove(refreshToken);

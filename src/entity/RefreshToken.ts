@@ -1,8 +1,7 @@
-import {Entity, ManyToOne, PrimaryColumn, Unique} from "typeorm";
+import {Entity, ManyToOne, PrimaryColumn} from "typeorm";
 import { User } from "./User";
 
 @Entity("refresh_tokens")
-@Unique(['token', 'user'])
 export class RefreshToken {
     @PrimaryColumn()
     token!: string;

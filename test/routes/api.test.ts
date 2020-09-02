@@ -129,7 +129,7 @@ describe('with login', () => {
 
     test('unauth refresh token', async () => {
         await server
-        .post('/token')
+        .post('/jwt/refresh')
         .send({token, refreshToken})
         .expect(OK);
 
@@ -141,7 +141,7 @@ describe('with login', () => {
 
     test('refresh token', async () => {
         const res = await server
-        .post('/token')
+        .post('/jwt/refresh')
         .send({token, refreshToken})
         .expect(OK);
 
@@ -153,14 +153,14 @@ describe('with login', () => {
 
     test('refresh token fail', async () => {
         await server
-        .post('/token')
+        .post('/jwt/refresh')
         .send({token: 'hello@gmail.com', refreshToken})
         .expect(UNAUTHORIZED);
     });
 
     test('reject refresh token and using previous token for authorization', async () => {
         await server
-        .delete('/token')
+        .delete('/jwt/refresh')
         .send({refreshToken})
         .expect(NO_CONTENT);
 
