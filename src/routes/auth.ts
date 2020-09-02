@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getConnection } from 'typeorm';
-import { User } from '../entity/User';
+import { User, RefreshToken } from '../entity';
 import * as models from '../entity/User';
 import * as jwt from '../utils/jwt-utils';
 import * as crypt from '../utils/crypt-utils';
@@ -22,11 +22,6 @@ export const router = Router();
 function manager() {
     return getConnection().manager;
 }
-
-interface RefreshTokenDB {
-    [refreshToken: string]: string;
-}
-const refreshTokens: RefreshTokenDB = {}
 
 router.post('/register', async (req, res) => {
     const password = req.body.password;
@@ -57,13 +52,15 @@ router.post('/login', async (req, res) => {
         });
         const ok = await crypt.compare(req.body.password, user.password);
         if(ok) {
+            const refresh = new RefreshToken();
             const token = await generateToken(user);
-            const refreshToken = await jwt.sign({}, secretObj.secret, {expiresIn: '2d'});
-            refreshTokens[refreshToken] = user.email; // DB
+            refresh.token = await jwt.sign({}, secretObj.secret, {expiresIn: '2d'});
+            refresh.user = Promise.resolve(user);
+            await manager().save(refresh);
     
             res.json({
                 token,
-                refreshToken
+                refreshToken: refresh.token
             });
         } else {
             res.sendStatus(BAD_REQUEST);
@@ -75,11 +72,11 @@ router.post('/login', async (req, res) => {
 
 router.post('/token', async (req, res) => {
     const token = req.body.token;
-    const refreshToken = req.body.refreshToken;
     const decoded = jwt.decode(token) as any;
     if(!decoded || !decoded.email) return res.sendStatus(UNAUTHORIZED);
 
-    if((refreshToken in refreshTokens) && (refreshTokens[refreshToken] === decoded.email)) {
+    const refreshToken = await manager().findOne(RefreshToken, req.body.refreshToken);
+    if(refreshToken) {
         const user = await manager().findOneOrFail(User, {
             where: {email: decoded.email}
         });
@@ -90,9 +87,9 @@ router.post('/token', async (req, res) => {
 });
 
 router.delete('/token', async (req, res) => {
-    const refreshToken = req.body.refreshToken;
-    if(refreshToken in refreshTokens) {
-        delete refreshTokens[refreshToken];
+    const refreshToken = await manager().findOne(RefreshToken, req.body.refreshToken);
+    if(refreshToken) {
+        await manager().remove(refreshToken);
         res.sendStatus(NO_CONTENT);
     } else {
         res.sendStatus(BAD_REQUEST);

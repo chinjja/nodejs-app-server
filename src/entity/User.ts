@@ -1,6 +1,6 @@
 import {Entity, PrimaryGeneratedColumn, Column, OneToMany} from "typeorm";
 import {Matches, MinLength} from 'class-validator';
-import { Post } from "./Post";
+import { Post, RefreshToken } from ".";
 
 @Entity("users")
 export class User {
@@ -26,4 +26,7 @@ export class User {
 
     @OneToMany(type => Post, post => post.user)
     posts!: Promise<Post[]>;
+
+    @OneToMany(type => RefreshToken, token => token.user)
+    refreshTokens!: Promise<RefreshToken[]>
 }
