@@ -33,3 +33,7 @@ export function verify(
         });
     });
 }
+
+export async function decode(token: string) {
+    return jwt.decode(token);
+}

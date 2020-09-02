@@ -77,11 +77,18 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/token', async (req, res) => {
-    const email = req.body.email;
+    const token = req.body.token;
     const refreshToken = req.body.refreshToken;
-    if((refreshToken in refreshTokens) && (refreshTokens[refreshToken] === email)) {
+    const decoded = (await jwt.decode(token)) as any;
+    if(!decoded || !decoded.email) return res.sendStatus(UNAUTHORIZED);
+
+    if((refreshToken in refreshTokens) && (refreshTokens[refreshToken] === decoded.email)) {
+        const user = await manager().findOneOrFail(User, {
+            where: {email: decoded.email}
+        });
         const token = await jwt.sign({
-            email
+            id: user.id,
+            email: user.email
         }, secretObj.secret, {expiresIn: '5m'});
         res.json({token});
     } else {
