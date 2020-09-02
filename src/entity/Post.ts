@@ -18,6 +18,6 @@ export class Post {
     @Column()
     updatedAt!: Date;
 
-    @ManyToOne(type => User, user => user.posts, {nullable: false})
+    @ManyToOne(type => User, user => user.posts, {nullable: false, onDelete: 'CASCADE'})
     user!: Promise<User>;
 }
