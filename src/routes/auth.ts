@@ -1,14 +1,15 @@
 import { Router } from 'express';
-import { getConnection } from 'typeorm';
+import { getConnection, LessThan } from 'typeorm';
 import { User, RefreshToken } from '../entity';
 import * as models from '../entity/User';
 import * as jwt from '../utils/jwt-utils';
 import * as crypt from '../utils/crypt-utils';
 import secretObj from '../../coverage/jwt';
-import { BAD_REQUEST, UNAUTHORIZED, NO_CONTENT, CONFLICT, CREATED, NOT_FOUND } from 'http-status-codes';
+import { BAD_REQUEST, UNAUTHORIZED, NO_CONTENT, CONFLICT, CREATED, NOT_FOUND, INTERNAL_SERVER_ERROR } from 'http-status-codes';
 import { minLength, validate } from 'class-validator';
 import {Strategy as JwtStrategy, ExtractJwt} from 'passport-jwt';
 import passport from 'passport';
+import randToken from 'rand-token';
 
 declare global {
     namespace Express {
@@ -53,9 +54,18 @@ router.post('/login', async (req, res) => {
         const ok = await crypt.compare(req.body.password, user.password);
         if(ok) {
             const refresh = new RefreshToken();
-            const token = await generateToken(user);
-            refresh.token = await jwt.sign({}, secretObj.secret, {expiresIn: '2d'});
+            const now = new Date();
+            const exp = new Date(now);
+            exp.setDate(exp.getDate() + 2);
+            refresh.exp = exp;
+            refresh.token = await generateRefreshToken();
             refresh.user = Promise.resolve(user);
+            const token = await generateToken(user);
+            
+            await manager().delete(RefreshToken, {
+                user: {id: user.id},
+                exp: LessThan(now),
+            });
             await manager().save(refresh);
     
             res.json({
@@ -76,12 +86,13 @@ router.post('/jwt/refresh', async (req, res) => {
     if(!decoded || !decoded.email) return res.sendStatus(UNAUTHORIZED);
 
     const refreshToken = await manager().findOne(RefreshToken, req.body.refreshToken);
-    if(refreshToken) {
+    if(refreshToken && refreshToken.exp > new Date()) {
         const user = await manager().findOneOrFail(User, {
             where: {email: decoded.email}
         });
         res.json({token: await generateToken(user)});
     } else {
+        await manager().delete(RefreshToken, req.body.refreshToken);
         res.sendStatus(UNAUTHORIZED);
     }
 });
@@ -115,4 +126,22 @@ async function generateToken(user: User) {
         id: user.id,
         email: user.email
     }, secretObj.secret, {expiresIn: '5m'});
+}
+
+async function generateRefreshToken(): Promise<string> {
+    let refreshToken: string | null = null;
+    for(let i = 0; i < 5; i++) {
+        const uid = randToken.uid(32);
+        const count = await manager().count(RefreshToken, {
+            where: {token: uid}
+        });
+        if(count === 0) {
+            refreshToken = uid;
+        }
+    }
+    if(refreshToken) {
+        return refreshToken;
+    } else {
+        return Promise.reject('cannot generate a refresh token');
+    }
 }
