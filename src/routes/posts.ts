@@ -5,18 +5,18 @@ import { NOT_FOUND, NO_CONTENT, BAD_REQUEST, OK, CREATED, NOT_IMPLEMENTED } from
 
 export const router = Router();
 
-function manager() {
-    return getConnection().manager;
+function repo() {
+    return getConnection().manager.getRepository(Post);
 }
 
 router.post('/', async (req, res) => {
-    const post = new Post();
-    post.user = Promise.resolve(req.user!);
-    post.title = req.body.title;
-    post.contents = req.body.contents;
-    post.createdAt = post.updatedAt = new Date();
     try {
-        await manager().save(post);
+        const post = new Post();
+        post.user = Promise.resolve(req.user!);
+        post.title = req.body.title;
+        post.contents = req.body.contents;
+        post.createdAt = post.updatedAt = new Date();
+        await repo().save(post);
         res.status(CREATED).json(post);
     } catch(e) {
         res.sendStatus(BAD_REQUEST);
@@ -24,12 +24,24 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
-    res.json(await req.user!.posts);
+    try {
+        const post = await repo().find({
+            where: {user: {id: req.user!.id}},
+        });
+        res.json(post);
+    } catch(e) {
+        res.sendStatus(NOT_FOUND);
+    }
 });
 
 router.get('/:id', async (req, res) => {
     try {
-        const post = manager().findOneOrFail(Post, req.params.id);
+        const post = await repo().findOneOrFail({
+            where: {
+                id: req.params.id,
+                user: {id: req.user!.id},
+            },
+        });
         res.json(post);
     } catch(e) {
         res.sendStatus(NOT_FOUND);
@@ -37,12 +49,30 @@ router.get('/:id', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-    res.sendStatus(NOT_IMPLEMENTED);
+    try {
+        const post = await repo().findOneOrFail({
+            where: {
+                id: req.params.id,
+                user: {id: req.user!.id}
+            }
+        });
+        const {id, ...rest} = req.body;
+        await repo().update(post, rest);
+        res.sendStatus(NO_CONTENT);
+    } catch(e) {
+        res.sendStatus(NOT_FOUND);
+    }
 });
 
 router.delete('/:id', async (req, res) => {
     try {
-        await manager().delete(Post, req.params.id);
+        const post = await repo().findOneOrFail({
+            where: {
+                id: req.params.id,
+                user: {id: req.user!.id}
+            }
+        });
+        await repo().remove(post);
         res.sendStatus(NO_CONTENT);
     } catch(e) {
         res.sendStatus(NOT_FOUND);
