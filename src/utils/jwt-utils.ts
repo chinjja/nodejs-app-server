@@ -34,6 +34,6 @@ export function verify(
     });
 }
 
-export async function decode(token: string) {
+export function decode(token: string) {
     return jwt.decode(token);
 }

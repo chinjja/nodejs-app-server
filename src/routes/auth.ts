@@ -51,27 +51,24 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-    const user = await manager().findOne(User, {
-        where: {email: req.body.email}
-    });
-    if(!user) {
-        res.sendStatus(BAD_REQUEST);
-        return;
-    }
-    const ok = await crypt.compare(req.body.password, user.password);
-    if(ok) {
-        const token = await jwt.sign({
-            id: user.id,
-            email: user.email
-        }, secretObj.secret, {expiresIn: '5m'});
-        const refreshToken = await jwt.sign({}, secretObj.secret, {expiresIn: '2d'});
-        refreshTokens[refreshToken] = user.email; // DB
-
-        res.json({
-            token,
-            refreshToken
+    try {
+        const user = await manager().findOneOrFail(User, {
+            where: {email: req.body.email}
         });
-    } else {
+        const ok = await crypt.compare(req.body.password, user.password);
+        if(ok) {
+            const token = await generateToken(user);
+            const refreshToken = await jwt.sign({}, secretObj.secret, {expiresIn: '2d'});
+            refreshTokens[refreshToken] = user.email; // DB
+    
+            res.json({
+                token,
+                refreshToken
+            });
+        } else {
+            res.sendStatus(BAD_REQUEST);
+        }
+    } catch(e) {
         res.sendStatus(BAD_REQUEST);
     }
 });
@@ -79,18 +76,14 @@ router.post('/login', async (req, res) => {
 router.post('/token', async (req, res) => {
     const token = req.body.token;
     const refreshToken = req.body.refreshToken;
-    const decoded = (await jwt.decode(token)) as any;
+    const decoded = jwt.decode(token) as any;
     if(!decoded || !decoded.email) return res.sendStatus(UNAUTHORIZED);
 
     if((refreshToken in refreshTokens) && (refreshTokens[refreshToken] === decoded.email)) {
         const user = await manager().findOneOrFail(User, {
             where: {email: decoded.email}
         });
-        const token = await jwt.sign({
-            id: user.id,
-            email: user.email
-        }, secretObj.secret, {expiresIn: '5m'});
-        res.json({token});
+        res.json({token: await generateToken(user)});
     } else {
         res.sendStatus(UNAUTHORIZED);
     }
@@ -119,3 +112,10 @@ export const config = async (passport: passport.Authenticator) => {
         }
     }));
 };
+
+async function generateToken(user: User) {
+    return jwt.sign({
+        id: user.id,
+        email: user.email
+    }, secretObj.secret, {expiresIn: '5m'});
+}
