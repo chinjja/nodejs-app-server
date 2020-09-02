@@ -77,6 +77,7 @@ describe("after creating posts", () => {
     it("should be 10", async () => {
         const manager = getConnection().manager;
         expect(await manager.count(Post)).toEqual(10);
+        expect(await manager.count(Post, {where: {user: {id: 1}}})).toEqual(10);
         
         const user = await manager.findOneOrFail(User, 1);
         await expect(user.posts).resolves.toHaveLength(10);
