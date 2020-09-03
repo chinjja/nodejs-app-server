@@ -151,6 +151,18 @@ describe('with login', () => {
         .expect(OK);
     });
 
+    test('refresh token after rejection', async () => {
+        await server
+        .delete('/jwt/refresh')
+        .send({refreshToken})
+        .expect(NO_CONTENT);
+
+        await server
+        .post('/jwt/refresh')
+        .send({token, refreshToken})
+        .expect(UNAUTHORIZED);
+    });
+
     test('refresh token fail', async () => {
         await server
         .post('/jwt/refresh')
