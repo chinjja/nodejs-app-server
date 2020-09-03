@@ -80,6 +80,21 @@ router.post('/login', async (req, res) => {
     }
 });
 
+router.post('/logout', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    try {
+        if (req.body.rejectAllRefreshToken) {
+            await manager().delete(RefreshToken, { user: { id: req.user!.id } });
+        }
+        if (req.body.refreshToken) {
+            await manager().delete(RefreshToken, req.body.refreshToken);
+        }
+        res.sendStatus(NO_CONTENT);
+    } catch (e) {
+        console.log(e);
+        res.sendStatus(UNAUTHORIZED);
+    }
+});
+
 router.post('/jwt/refresh', async (req, res) => {
     const token = req.body.token;
     const decoded = jwt.decode(token) as any;
